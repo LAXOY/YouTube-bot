@@ -1,4 +1,5 @@
 import os
+import time
 from google import genai
 
 
@@ -29,12 +30,50 @@ Rules:
 - Return ONLY the spoken narration.
 """
 
-    response = client.models.generate_content(
-        model="gemini-3.8-flash",
-        contents=prompt,
-    )
+    attempt = 1
 
-    return response.text.strip()
+    while True:
+        try:
+            print(f"🤖 Gemini denemesi #{attempt}...")
+
+            response = client.models.generate_content(
+                model="gemini-3.8-flash",
+                contents=prompt,
+            )
+
+            if not response.text:
+                raise RuntimeError("Gemini boş cevap döndürdü!")
+
+            print("✅ Gemini cevap verdi!")
+            return response.text.strip()
+
+        except Exception as error:
+            error_text = str(error)
+
+            print(f"⚠️ Deneme #{attempt} başarısız:")
+            print(error_text)
+
+            retryable_errors = [
+                "429",
+                "500",
+                "502",
+                "503",
+                "504",
+                "UNAVAILABLE",
+                "RESOURCE_EXHAUSTED",
+                "INTERNAL",
+            ]
+
+            if any(code in error_text for code in retryable_errors):
+                wait_time = min(attempt * 5, 60)
+
+                print(f"⏳ {wait_time} saniye sonra tekrar denenecek...")
+                time.sleep(wait_time)
+
+                attempt += 1
+                continue
+
+            raise
 
 
 def main():
