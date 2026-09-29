@@ -30,11 +30,12 @@ Rules:
 - Return ONLY the spoken narration.
 """
 
-    attempt = 1
+    max_attempts = 10
 
-    while True:
+    for attempt in range(1, max_attempts + 1):
+
         try:
-            print(f"🤖 Gemini denemesi #{attempt}...")
+            print(f"🤖 Gemini denemesi {attempt}/{max_attempts}...")
 
             response = client.models.generate_content(
                 model="gemini-3.8-flash",
@@ -50,7 +51,7 @@ Rules:
         except Exception as error:
             error_text = str(error)
 
-            print(f"⚠️ Deneme #{attempt} başarısız:")
+            print(f"⚠️ Deneme {attempt} başarısız:")
             print(error_text)
 
             retryable_errors = [
@@ -64,16 +65,26 @@ Rules:
                 "INTERNAL",
             ]
 
-            if any(code in error_text for code in retryable_errors):
-                wait_time = min(attempt * 5, 60)
+            is_retryable = any(
+                code in error_text
+                for code in retryable_errors
+            )
 
-                print(f"⏳ {wait_time} saniye sonra tekrar denenecek...")
-                time.sleep(wait_time)
+            if not is_retryable:
+                raise
 
-                attempt += 1
-                continue
+            if attempt == max_attempts:
+                raise RuntimeError(
+                    "❌ Gemini 10 denemede de cevap vermedi."
+                )
 
-            raise
+            wait_time = min(5 * (2 ** (attempt - 1)), 60)
+
+            print(
+                f"⏳ {wait_time} saniye bekleniyor..."
+            )
+
+            time.sleep(wait_time)
 
 
 def main():
@@ -88,7 +99,11 @@ def main():
 
     os.makedirs("output", exist_ok=True)
 
-    with open("output/script.txt", "w", encoding="utf-8") as file:
+    with open(
+        "output/script.txt",
+        "w",
+        encoding="utf-8"
+    ) as file:
         file.write(script)
 
     print("\n✅ Script saved to output/script.txt")
