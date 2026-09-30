@@ -109,7 +109,7 @@ Important:
 - Visual queries must describe things that are likely to exist as stock video footage.
 """
 
-        response = None
+response = None
 
     for attempt in range(5):
 
