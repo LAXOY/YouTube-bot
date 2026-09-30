@@ -1,5 +1,6 @@
 import os
 import time
+import base64
 from google import genai
 
 
@@ -77,6 +78,7 @@ def generate_with_model(client, model):
 
 
 def generate_script():
+
     api_key = os.environ.get("GEMINI_API_KEY")
 
     if not api_key:
@@ -103,10 +105,69 @@ def generate_script():
     )
 
 
+def generate_voice(client, script):
+
+    print("\n🎙️ Ses oluşturuluyor...")
+
+    interaction = client.interactions.create(
+        model="gemini-3.8-flash-lite-tts",
+        input=[
+            {
+                "type": "user_input",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": script,
+                        "annotations": [
+                            {
+                                "type": "speech_metadata",
+                                "style": "natural, energetic, clear YouTube Shorts narration",
+                            }
+                        ],
+                    }
+                ],
+            }
+        ],
+        response_format={
+            "type": "audio"
+        },
+        generation_config={
+            "speech_config": [
+                {
+                    "voice": "Kore"
+                }
+            ]
+        },
+    )
+
+    if not interaction.output_audio:
+        raise RuntimeError("❌ TTS ses üretmedi!")
+
+    audio_data = base64.b64decode(
+        interaction.output_audio.data
+    )
+
+    os.makedirs("output", exist_ok=True)
+
+    voice_path = "output/voice.wav"
+
+    with open(voice_path, "wb") as file:
+        file.write(audio_data)
+
+    print(f"✅ Ses kaydedildi: {voice_path}")
+
+
 def main():
 
     print("🚀 HOW DOES IT WORK? Shorts Bot")
     print("🧠 Script oluşturuluyor...")
+
+    api_key = os.environ.get("GEMINI_API_KEY")
+
+    if not api_key:
+        raise RuntimeError("GEMINI_API_KEY bulunamadı!")
+
+    client = genai.Client(api_key=api_key)
 
     script = generate_script()
 
@@ -127,6 +188,10 @@ def main():
 
     print("\n✅ Script kaydedildi:")
     print("output/script.txt")
+
+    generate_voice(client, script)
+
+    print("\n🎉 2. AŞAMA TAMAMLANDI!")
 
 
 if __name__ == "__main__":
