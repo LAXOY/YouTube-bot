@@ -109,7 +109,7 @@ Important:
 """
 
     response = client.models.generate_content(
-        model="gemini-2.5-flash",
+        model="gemini-3.8-flash",
         contents=prompt
     )
 
@@ -277,7 +277,7 @@ def generate_voice(script):
     print("\n🎙️ Ses oluşturuluyor...")
 
     response = client.models.generate_content(
-        model="gemini-2.5-flash-preview-tts",
+        model="gemini-3.8-flash-tts",
         contents=script,
         config={
             "response_modalities": ["AUDIO"],
