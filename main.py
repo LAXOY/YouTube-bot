@@ -111,14 +111,14 @@ Important:
 
 response = None
 
-    for attempt in range(5):
+for attempt in range(5):
 
-        try:
+    try:
 
-            print(
-                f"\n🧠 Gemini isteği: "
-                f"{attempt + 1}/5"
-            )
+        print(
+            f"\n🧠 Gemini isteği: "
+            f"{attempt + 1}/5"
+        )
 
             response = client.models.generate_content(
                 model="gemini-3.8-flash",
