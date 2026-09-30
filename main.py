@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import time
 import subprocess
 import requests
 
@@ -108,10 +109,65 @@ Important:
 - Visual queries must describe things that are likely to exist as stock video footage.
 """
 
-    response = client.models.generate_content(
-        model="gemini-3.8-flash",
-        contents=prompt
-    )
+        response = None
+
+    for attempt in range(5):
+
+        try:
+
+            print(
+                f"\n🧠 Gemini isteği: "
+                f"{attempt + 1}/5"
+            )
+
+            response = client.models.generate_content(
+                model="gemini-3.8-flash",
+                contents=prompt
+            )
+
+            print("✅ Gemini cevap verdi!")
+
+            break
+
+        except Exception as e:
+
+            error_text = str(e)
+
+            if "503" in error_text:
+
+                if attempt < 4:
+
+                    wait_time = 10 * (2 ** attempt)
+
+                    print(
+                        f"⚠️ Gemini şu anda yoğun."
+                    )
+
+                    print(
+                        f"⏳ {wait_time} saniye sonra "
+                        f"tekrar denenecek..."
+                    )
+
+                    time.sleep(wait_time)
+
+                else:
+
+                    print(
+                        "❌ Gemini 5 denemede de "
+                        "cevap vermedi."
+                    )
+
+                    raise
+
+            else:
+
+                raise
+
+    if response is None:
+
+        raise RuntimeError(
+            "❌ Gemini'den cevap alınamadı!"
+        )
 
     text = response.text.strip()
 
