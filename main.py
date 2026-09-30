@@ -31,14 +31,15 @@ if not GEMINI_API_KEY:
 if not PIXABAY_API_KEY:
     raise RuntimeError("❌ PIXABAY_API_KEY bulunamadı!")
 
-
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-client = genai.Client(api_key=GEMINI_API_KEY)
+client = genai.Client(
+    api_key=GEMINI_API_KEY
+)
 
 
 # ============================================================
-# GEMINI'DEN VİDEO BİLGİLERİ AL
+# GEMINI VIDEO BİLGİLERİ
 # ============================================================
 
 def generate_video_info():
@@ -53,6 +54,7 @@ The channel concept is:
 "How Does It Work?"
 
 Choose ONE interesting topic that:
+
 - can be explained visually
 - is understandable to ordinary people
 - creates curiosity
@@ -62,7 +64,10 @@ Choose ONE interesting topic that:
 - is not about controversial current events
 - is not too difficult to explain
 
+Choose a different topic each time.
+
 Examples:
+
 - How does noise cancelling work?
 - How does GPS know where you are?
 - How does an elevator know which floor to stop at?
@@ -72,7 +77,7 @@ Examples:
 - How does an airplane stay in the air?
 - How does a QR code work?
 
-Do NOT always choose the examples above.
+Do NOT always choose these examples.
 
 Return ONLY valid JSON.
 
@@ -100,32 +105,42 @@ Required format:
 }
 
 Important:
+
 - Script must be natural spoken English.
 - Keep it around 90-120 words.
 - Do not use complicated vocabulary.
 - Make the first sentence a strong hook.
 - Do not include stage directions.
 - Do not include emojis inside the script.
-- Visual queries must describe things that are likely to exist as stock video footage.
+- Visual queries must describe things likely to exist as stock video footage.
 """
 
-response = None
 
-for attempt in range(5):
+    response = None
 
-    try:
+    # ========================================================
+    # GEMINI RETRY
+    # ========================================================
 
-        print(
-            f"\n🧠 Gemini isteği: "
-            f"{attempt + 1}/5"
-        )
+    for attempt in range(5):
+
+        try:
+
+            print(
+                f"\n🧠 Gemini isteği "
+                f"{attempt + 1}/5"
+            )
 
             response = client.models.generate_content(
+
                 model="gemini-3.8-flash",
+
                 contents=prompt
             )
 
-            print("✅ Gemini cevap verdi!")
+            print(
+                "✅ Gemini cevap verdi!"
+            )
 
             break
 
@@ -137,24 +152,28 @@ for attempt in range(5):
 
                 if attempt < 4:
 
-                    wait_time = 10 * (2 ** attempt)
-
-                    print(
-                        f"⚠️ Gemini şu anda yoğun."
+                    wait_time = 10 * (
+                        2 ** attempt
                     )
 
                     print(
-                        f"⏳ {wait_time} saniye sonra "
-                        f"tekrar denenecek..."
+                        "⚠️ Gemini şu anda yoğun."
                     )
 
-                    time.sleep(wait_time)
+                    print(
+                        f"⏳ {wait_time} saniye "
+                        "sonra tekrar denenecek..."
+                    )
+
+                    time.sleep(
+                        wait_time
+                    )
 
                 else:
 
                     print(
-                        "❌ Gemini 5 denemede de "
-                        "cevap vermedi."
+                        "❌ Gemini 5 denemede "
+                        "de cevap vermedi."
                     )
 
                     raise
@@ -163,131 +182,262 @@ for attempt in range(5):
 
                 raise
 
+
     if response is None:
 
         raise RuntimeError(
             "❌ Gemini'den cevap alınamadı!"
         )
 
+
     text = response.text.strip()
 
-    # Markdown JSON temizliği
-    text = re.sub(r"^```json\s*", "", text)
-    text = re.sub(r"^```\s*", "", text)
-    text = re.sub(r"\s*```$", "", text)
+
+    # ========================================================
+    # JSON TEMİZLE
+    # ========================================================
+
+    text = re.sub(
+        r"^```json\s*",
+        "",
+        text
+    )
+
+    text = re.sub(
+        r"^```\s*",
+        "",
+        text
+    )
+
+    text = re.sub(
+        r"\s*```$",
+        "",
+        text
+    )
+
 
     try:
+
         data = json.loads(text)
+
     except Exception as e:
-        print("\n❌ Gemini JSON hatası:")
+
+        print(
+            "\n❌ Gemini JSON hatası:"
+        )
+
         print(text)
+
         raise e
 
-    print("\n" + "=" * 50)
-    print("🎯 YENİ KONU")
-    print("=" * 50)
 
-    print("Konu:", data["topic"])
-    print("Başlık:", data["title"])
+    print(
+        "\n" + "=" * 55
+    )
 
-    print("\n📝 Script:")
-    print(data["script"])
+    print(
+        "🎯 YENİ KONU"
+    )
+
+    print(
+        "=" * 55
+    )
+
+    print(
+        "Konu:",
+        data["topic"]
+    )
+
+    print(
+        "Başlık:",
+        data["title"]
+    )
+
+    print(
+        "\n📝 Script:"
+    )
+
+    print(
+        data["script"]
+    )
+
+    print(
+        "=" * 55
+    )
 
     return data
 
 
 # ============================================================
-# PIXABAY'DEN VİDEO İNDİR
+# PIXABAY
 # ============================================================
 
-def search_pixabay(query, index):
+def search_pixabay(
+    query,
+    index
+):
 
-    print(f"\n🔎 Pixabay aranıyor: {query}")
+    print(
+        f"\n🔎 Pixabay: {query}"
+    )
 
-    url = "https://pixabay.com/api/videos/"
+    url = (
+        "https://pixabay.com/api/videos/"
+    )
 
     params = {
-        "key": PIXABAY_API_KEY,
-        "q": query,
-        "per_page": 10,
-        "safesearch": "true"
+
+        "key":
+            PIXABAY_API_KEY,
+
+        "q":
+            query,
+
+        "per_page":
+            10,
+
+        "safesearch":
+            "true"
     }
 
+
     response = requests.get(
+
         url,
+
         params=params,
+
         timeout=30
     )
 
     response.raise_for_status()
 
+
     data = response.json()
 
-    hits = data.get("hits", [])
+    hits = data.get(
+        "hits",
+        []
+    )
+
 
     if not hits:
-        print("⚠️ Video bulunamadı.")
+
+        print(
+            "⚠️ Video bulunamadı."
+        )
+
         return None
 
-    # İlk uygun sonucu al
+
     for hit in hits:
 
-        videos = hit.get("videos", {})
+        videos = hit.get(
+            "videos",
+            {}
+        )
+
+
+        video_url = None
+
 
         if "large" in videos:
-            video_url = videos["large"]["url"]
+
+            video_url = (
+                videos["large"]["url"]
+            )
 
         elif "medium" in videos:
-            video_url = videos["medium"]["url"]
+
+            video_url = (
+                videos["medium"]["url"]
+            )
 
         elif "small" in videos:
-            video_url = videos["small"]["url"]
 
-        else:
+            video_url = (
+                videos["small"]["url"]
+            )
+
+
+        if not video_url:
+
             continue
 
+
         output_path = os.path.join(
+
             OUTPUT_DIR,
+
             f"clip_{index}.mp4"
         )
 
-        print("⬇️ İndiriliyor...")
+
+        print(
+            "⬇️ Video indiriliyor..."
+        )
+
 
         video_response = requests.get(
+
             video_url,
+
             timeout=60
         )
 
         video_response.raise_for_status()
 
-        with open(output_path, "wb") as f:
-            f.write(video_response.content)
 
-        print(f"✅ Kaydedildi: {output_path}")
+        with open(
+            output_path,
+            "wb"
+        ) as f:
+
+            f.write(
+                video_response.content
+            )
+
+
+        print(
+            f"✅ Kaydedildi: "
+            f"{output_path}"
+        )
+
 
         return output_path
+
 
     return None
 
 
 # ============================================================
-# VİDEOLARI DİKEY FORMATLA
+# DİKEY VİDEO
 # ============================================================
 
-def convert_clip(input_path, index):
+def convert_clip(
+    input_path,
+    index
+):
 
     output_path = os.path.join(
+
         OUTPUT_DIR,
+
         f"vertical_{index}.mp4"
     )
 
+
     command = [
+
         "ffmpeg",
+
         "-y",
+
         "-i",
         input_path,
 
         "-vf",
+
         (
             "scale=1080:1920:"
             "force_original_aspect_ratio=increase,"
@@ -314,12 +464,18 @@ def convert_clip(input_path, index):
         output_path
     ]
 
+
     subprocess.run(
+
         command,
+
         check=True,
+
         stdout=subprocess.DEVNULL,
+
         stderr=subprocess.DEVNULL
     )
+
 
     return output_path
 
@@ -328,36 +484,73 @@ def convert_clip(input_path, index):
 # GEMINI TTS
 # ============================================================
 
-def generate_voice(script):
+def generate_voice(
+    script
+):
 
-    print("\n🎙️ Ses oluşturuluyor...")
+    print(
+        "\n🎙️ Ses oluşturuluyor..."
+    )
+
 
     response = client.models.generate_content(
+
         model="gemini-3.8-flash-tts",
+
         contents=script,
+
         config={
-            "response_modalities": ["AUDIO"],
+
+            "response_modalities":
+                ["AUDIO"],
+
             "speech_config": {
+
                 "voice_config": {
+
                     "prebuilt_voice_config": {
-                        "voice_name": "Kore"
+
+                        "voice_name":
+                            "Kore"
                     }
                 }
             }
         }
     )
 
-    audio = response.candidates[0].content.parts[0].inline_data.data
+
+    audio = (
+        response
+        .candidates[0]
+        .content
+        .parts[0]
+        .inline_data
+        .data
+    )
+
 
     audio_path = os.path.join(
+
         OUTPUT_DIR,
+
         "voice.wav"
     )
 
-    with open(audio_path, "wb") as f:
-        f.write(audio)
 
-    print("✅ Ses hazır.")
+    with open(
+        audio_path,
+        "wb"
+    ) as f:
+
+        f.write(
+            audio
+        )
+
+
+    print(
+        "✅ Ses hazır."
+    )
+
 
     return audio_path
 
@@ -366,47 +559,83 @@ def generate_voice(script):
 # ALTYAZI
 # ============================================================
 
-def create_subtitles(data):
+def create_subtitles(
+    data
+):
 
-    print("\n💬 Altyazılar hazırlanıyor...")
+    print(
+        "\n💬 Altyazılar hazırlanıyor..."
+    )
 
-    english = data["script"]
-    turkish = data["turkish_translation"]
 
-    english_words = english.split()
-    turkish_words = turkish.split()
+    english = data[
+        "script"
+    ]
 
-    duration = 45
+    turkish = data[
+        "turkish_translation"
+    ]
 
-    def make_chunks(words, chunk_size=7):
+
+    def make_chunks(
+        words,
+        chunk_size=7
+    ):
 
         chunks = []
 
-        for i in range(0, len(words), chunk_size):
+        for i in range(
+            0,
+            len(words),
+            chunk_size
+        ):
+
             chunks.append(
-                " ".join(words[i:i + chunk_size])
+
+                " ".join(
+                    words[
+                        i:i + chunk_size
+                    ]
+                )
             )
 
         return chunks
 
-    eng_chunks = make_chunks(english_words)
-    tr_chunks = make_chunks(turkish_words)
+
+    eng_chunks = make_chunks(
+        english.split()
+    )
+
+    tr_chunks = make_chunks(
+        turkish.split()
+    )
+
 
     count = max(
+
         len(eng_chunks),
+
         len(tr_chunks)
     )
 
+
     subtitle_path = os.path.join(
+
         OUTPUT_DIR,
+
         "subtitles.ass"
     )
 
+
     with open(
+
         subtitle_path,
+
         "w",
+
         encoding="utf-8"
     ) as f:
+
 
         f.write(
             """[Script Info]
@@ -424,30 +653,64 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
         )
 
-        for i in range(count):
 
-            start = i * duration / count
-            end = (i + 1) * duration / count
+        def ass_time(
+            seconds
+        ):
 
-            def ass_time(seconds):
+            hours = int(
+                seconds // 3600
+            )
 
-                hours = int(seconds // 3600)
-                minutes = int(
-                    (seconds % 3600) // 60
-                )
-                secs = int(seconds % 60)
-                centis = int(
-                    (seconds - int(seconds)) * 100
-                )
+            minutes = int(
+                (seconds % 3600) // 60
+            )
 
-                return (
-                    f"{hours}:{minutes:02d}:"
-                    f"{secs:02d}.{centis:02d}"
-                )
+            secs = int(
+                seconds % 60
+            )
 
-            if i < len(eng_chunks):
+            centis = int(
+                (
+                    seconds
+                    - int(seconds)
+                ) * 100
+            )
+
+
+            return (
+
+                f"{hours}:"
+                f"{minutes:02d}:"
+                f"{secs:02d}."
+                f"{centis:02d}"
+            )
+
+
+        duration = 45
+
+
+        for i in range(
+            count
+        ):
+
+            start = (
+                i * duration / count
+            )
+
+            end = (
+                (i + 1)
+                * duration
+                / count
+            )
+
+
+            if i < len(
+                eng_chunks
+            ):
 
                 f.write(
+
                     f"Dialogue: 0,"
                     f"{ass_time(start)},"
                     f"{ass_time(end)},"
@@ -455,9 +718,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     f"{eng_chunks[i]}\n"
                 )
 
-            if i < len(tr_chunks):
+
+            if i < len(
+                tr_chunks
+            ):
 
                 f.write(
+
                     f"Dialogue: 0,"
                     f"{ass_time(start)},"
                     f"{ass_time(end)},"
@@ -465,45 +732,79 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     f"{tr_chunks[i]}\n"
                 )
 
-    print("✅ Altyazılar hazır.")
+
+    print(
+        "✅ Altyazılar hazır."
+    )
+
 
     return subtitle_path
 
 
 # ============================================================
-# FİNAL VİDEO
+# FINAL VIDEO
 # ============================================================
 
-def create_final_video(video_paths, audio_path, subtitle_path):
+def create_final_video(
 
-    print("\n🎬 Final video oluşturuluyor...")
+    video_paths,
+
+    audio_path,
+
+    subtitle_path
+
+):
+
+    print(
+        "\n🎬 Final video oluşturuluyor..."
+    )
+
 
     concat_file = os.path.join(
+
         OUTPUT_DIR,
+
         "concat.txt"
     )
 
+
     with open(
+
         concat_file,
+
         "w",
+
         encoding="utf-8"
+
     ) as f:
+
 
         for path in video_paths:
 
-            absolute_path = os.path.abspath(path)
-
-            f.write(
-                f"file '{absolute_path}'\n"
+            absolute_path = (
+                os.path.abspath(path)
             )
 
+
+            f.write(
+
+                f"file "
+                f"'{absolute_path}'\n"
+            )
+
+
     merged_video = os.path.join(
+
         OUTPUT_DIR,
+
         "merged.mp4"
     )
 
+
     command = [
+
         "ffmpeg",
+
         "-y",
 
         "-f",
@@ -521,18 +822,27 @@ def create_final_video(video_paths, audio_path, subtitle_path):
         merged_video
     ]
 
+
     subprocess.run(
+
         command,
+
         check=True
     )
 
+
     final_path = os.path.join(
+
         OUTPUT_DIR,
+
         "final_short.mp4"
     )
 
+
     command = [
+
         "ffmpeg",
+
         "-y",
 
         "-i",
@@ -573,96 +883,124 @@ def create_final_video(video_paths, audio_path, subtitle_path):
         final_path
     ]
 
+
     subprocess.run(
+
         command,
+
         check=True
     )
 
-    print("\n✅ FINAL SHORT HAZIR!")
+
+    print(
+        "\n✅ FINAL SHORT HAZIR!"
+    )
+
 
     return final_path
 
 
 # ============================================================
-# YOUTUBE UPLOAD
+# YOUTUBE
 # ============================================================
 
-def upload_to_youtube(data):
+def upload_to_youtube(
+    data
+):
 
-    print("\n📺 YouTube'a yükleniyor...")
+    print(
+        "\n📺 YouTube'a yükleniyor..."
+    )
+
 
     if not YOUTUBE_CLIENT_ID:
+
         raise RuntimeError(
             "❌ YOUTUBE_CLIENT_ID bulunamadı!"
         )
 
+
     if not YOUTUBE_CLIENT_SECRET:
+
         raise RuntimeError(
             "❌ YOUTUBE_CLIENT_SECRET bulunamadı!"
         )
 
+
     if not YOUTUBE_REFRESH_TOKEN:
+
         raise RuntimeError(
             "❌ YOUTUBE_REFRESH_TOKEN bulunamadı!"
         )
+
 
     credentials = Credentials(
 
         token=None,
 
-        refresh_token=YOUTUBE_REFRESH_TOKEN,
+        refresh_token=
+            YOUTUBE_REFRESH_TOKEN,
 
-        token_uri=(
-            "https://oauth2.googleapis.com/token"
-        ),
+        token_uri=
+            "https://oauth2.googleapis.com/token",
 
-        client_id=YOUTUBE_CLIENT_ID,
+        client_id=
+            YOUTUBE_CLIENT_ID,
 
-        client_secret=YOUTUBE_CLIENT_SECRET,
+        client_secret=
+            YOUTUBE_CLIENT_SECRET,
 
         scopes=[
+
             "https://www.googleapis.com/auth/youtube.upload"
-        ],
+        ]
     )
 
+
     youtube = build(
+
         "youtube",
+
         "v3",
+
         credentials=credentials
     )
 
-    title = data["title"]
-
-    description = data["description"]
-
-    tags = data.get(
-        "tags",
-        [
-            "Shorts",
-            "How Does It Work"
-        ]
-    )
 
     request_body = {
 
         "snippet": {
 
-            "title": title,
+            "title":
+                data["title"],
 
-            "description": description,
+            "description":
+                data["description"],
 
-            "tags": tags,
+            "tags":
+                data.get(
+                    "tags",
+                    [
+                        "Shorts",
+                        "How Does It Work",
+                        "Technology"
+                    ]
+                ),
 
-            "categoryId": "28",
+            "categoryId":
+                "28"
         },
 
         "status": {
 
-            "privacyStatus": "private",
+            "privacyStatus":
+                "private",
 
-            "selfDeclaredMadeForKids": False,
-        },
+            "selfDeclaredMadeForKids":
+                False
+        }
     }
+
 
     media = MediaFileUpload(
 
@@ -672,8 +1010,9 @@ def upload_to_youtube(data):
 
         chunksize=-1,
 
-        resumable=True,
+        resumable=True
     )
+
 
     request = youtube.videos().insert(
 
@@ -681,32 +1020,49 @@ def upload_to_youtube(data):
 
         body=request_body,
 
-        media_body=media,
+        media_body=media
     )
+
 
     response = request.execute()
 
-    video_id = response["id"]
 
-    print("\n" + "=" * 55)
+    video_id = response[
+        "id"
+    ]
 
-    print("🎉 YOUTUBE YÜKLEMESİ BAŞARILI!")
-
-    print("=" * 55)
-
-    print(f"🎬 Konu: {data['topic']}")
-
-    print(f"🏷️ Başlık: {title}")
-
-    print(f"🆔 Video ID: {video_id}")
 
     print(
-        f"https://www.youtube.com/watch?v={video_id}"
+        "\n" + "=" * 55
     )
 
-    print("🔒 Gizlilik: PRIVATE")
+    print(
+        "🎉 YOUTUBE YÜKLEMESİ BAŞARILI!"
+    )
 
-    print("=" * 55)
+    print(
+        "=" * 55
+    )
+
+    print(
+        f"🎬 Konu: {data['topic']}"
+    )
+
+    print(
+        f"🏷️ Başlık: {data['title']}"
+    )
+
+    print(
+        f"🆔 Video ID: {video_id}"
+    )
+
+    print(
+        "🔒 Gizlilik: PRIVATE"
+    )
+
+    print(
+        "=" * 55
+    )
 
 
 # ============================================================
@@ -715,43 +1071,64 @@ def upload_to_youtube(data):
 
 def main():
 
-    print("\n")
-    print("=" * 55)
-    print("🤖 YOUTUBE SHORTS BOT")
-    print("=" * 55)
+    print(
+        "\n" + "=" * 55
+    )
 
-    # 1. Yeni konu + script + metadata
+    print(
+        "🤖 YOUTUBE SHORTS BOT"
+    )
+
+    print(
+        "=" * 55
+    )
+
+
+    # 1. Gemini
     data = generate_video_info()
 
-    # 2. Ses
+
+    # 2. TTS
     audio_path = generate_voice(
         data["script"]
     )
 
-    # 3. Pixabay görüntüleri
+
+    # 3. Pixabay
     video_paths = []
 
+
     for i, query in enumerate(
+
         data["visual_queries"],
+
         start=1
     ):
 
         path = search_pixabay(
+
             query,
+
             i
         )
 
+
         if path:
+
             try:
 
                 vertical = convert_clip(
+
                     path,
+
                     i
                 )
+
 
                 video_paths.append(
                     vertical
                 )
+
 
             except Exception as e:
 
@@ -759,39 +1136,51 @@ def main():
                     f"⚠️ Klip işlenemedi: {e}"
                 )
 
+
     if len(video_paths) < 2:
 
         raise RuntimeError(
+
             "❌ Yeterli Pixabay videosu bulunamadı!"
         )
 
-    # 4. Altyazılar
+
+    # 4. Altyazı
     subtitle_path = create_subtitles(
         data
     )
 
-    # 5. Final video
+
+    # 5. Final
     create_final_video(
+
         video_paths,
+
         audio_path,
+
         subtitle_path
     )
+
 
     # 6. YouTube
     upload_to_youtube(
         data
     )
 
-    print("\n")
-    print("=" * 55)
-    print("🚀 İŞLEM TAMAMLANDI")
-    print("=" * 55)
+
     print(
-        "Gemini → Script → TTS → Pixabay → "
-        "FFmpeg → Altyazı → YouTube"
+        "\n" + "=" * 55
     )
-    print("=" * 55)
+
+    print(
+        "🚀 İŞLEM TAMAMLANDI!"
+    )
+
+    print(
+        "=" * 55
+    )
 
 
 if __name__ == "__main__":
+
     main()
