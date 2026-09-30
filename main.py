@@ -3,15 +3,7 @@ import time
 from google import genai
 
 
-def generate_script():
-    api_key = os.environ.get("GEMINI_API_KEY")
-
-    if not api_key:
-        raise RuntimeError("GEMINI_API_KEY bulunamadı!")
-
-    client = genai.Client(api_key=api_key)
-
-    prompt = """
+PROMPT = """
 You are the scriptwriter for a YouTube Shorts channel called
 "How Does It Work?"
 
@@ -30,28 +22,37 @@ Rules:
 - Return ONLY the spoken narration.
 """
 
-    max_attempts = 10
+
+MODELS = [
+    "gemini-3.8-flash",
+    "gemini-3.5-flash-lite",
+]
+
+
+def generate_with_model(client, model):
+    max_attempts = 3
 
     for attempt in range(1, max_attempts + 1):
 
         try:
-            print(f"🤖 Gemini denemesi {attempt}/{max_attempts}...")
+            print(f"🤖 {model} | Deneme {attempt}/{max_attempts}")
 
             response = client.models.generate_content(
-                model="gemini-3.8-flash",
-                contents=prompt,
+                model=model,
+                contents=PROMPT,
             )
 
             if not response.text:
-                raise RuntimeError("Gemini boş cevap döndürdü!")
+                raise RuntimeError("Model boş cevap döndürdü!")
 
-            print("✅ Gemini cevap verdi!")
+            print(f"✅ Başarılı model: {model}")
+
             return response.text.strip()
 
         except Exception as error:
             error_text = str(error)
 
-            print(f"⚠️ Deneme {attempt} başarısız:")
+            print(f"⚠️ {model} başarısız:")
             print(error_text)
 
             retryable_errors = [
@@ -65,35 +66,53 @@ Rules:
                 "INTERNAL",
             ]
 
-            is_retryable = any(
-                code in error_text
-                for code in retryable_errors
-            )
-
-            if not is_retryable:
+            if not any(code in error_text for code in retryable_errors):
                 raise
 
-            if attempt == max_attempts:
-                raise RuntimeError(
-                    "❌ Gemini 10 denemede de cevap vermedi."
-                )
+            if attempt < max_attempts:
+                print("⏳ 10 saniye bekleniyor...")
+                time.sleep(10)
 
-            wait_time = min(5 * (2 ** (attempt - 1)), 60)
+    return None
 
-            print(
-                f"⏳ {wait_time} saniye bekleniyor..."
-            )
 
-            time.sleep(wait_time)
+def generate_script():
+    api_key = os.environ.get("GEMINI_API_KEY")
+
+    if not api_key:
+        raise RuntimeError("GEMINI_API_KEY bulunamadı!")
+
+    client = genai.Client(api_key=api_key)
+
+    for model in MODELS:
+
+        print("\n" + "=" * 50)
+        print(f"🚀 MODEL DENENİYOR: {model}")
+        print("=" * 50)
+
+        script = generate_with_model(client, model)
+
+        if script:
+            return script
+
+        print(f"❌ {model} kullanılamadı.")
+        print("➡️ Sıradaki modele geçiliyor...")
+
+    raise RuntimeError(
+        "❌ Tüm Gemini modelleri başarısız oldu."
+    )
 
 
 def main():
+
     print("🚀 HOW DOES IT WORK? Shorts Bot")
-    print("🧠 Generating script...")
+    print("🧠 Script oluşturuluyor...")
 
     script = generate_script()
 
     print("\n" + "=" * 50)
+    print("GENERATED SCRIPT")
+    print("=" * 50)
     print(script)
     print("=" * 50)
 
@@ -106,7 +125,8 @@ def main():
     ) as file:
         file.write(script)
 
-    print("\n✅ Script saved to output/script.txt")
+    print("\n✅ Script kaydedildi:")
+    print("output/script.txt")
 
 
 if __name__ == "__main__":
