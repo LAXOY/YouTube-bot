@@ -3,6 +3,8 @@ import re
 import json
 import time
 import subprocess
+import httpx
+import httpx2
 import requests
 
 from google import genai
@@ -148,7 +150,7 @@ Important:
 
             error_text = str(e)
 
-            if "503" in error_text:
+            if isinstance(e, (httpx.TransportError, httpx2.TransportError)) or "503" in error_text:
 
                 if attempt < 4:
 
@@ -157,7 +159,7 @@ Important:
                     )
 
                     print(
-                        "⚠️ Gemini şu anda yoğun."
+                        "⚠️ Gemini isteği geçici olarak başarısız oldu."
                     )
 
                     print(
